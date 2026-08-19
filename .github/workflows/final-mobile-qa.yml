@@ -38,6 +38,10 @@ jobs:
           node <<'NODE'
           const { chromium } = require('playwright');
           const assert = (ok, msg) => { if (!ok) throw new Error(msg); };
+          const brokenLoadedImages = async locator => locator.evaluateAll(imgs =>
+            imgs.filter(i => i.getAttribute('src') && (!i.complete || i.naturalWidth === 0))
+                .map(i => ({ alt: i.alt, src: i.src.slice(0, 80) }))
+          );
 
           (async () => {
             const browser = await chromium.launch({ headless: true });
@@ -57,58 +61,59 @@ jobs:
             assert((await page.title()) === 'SURI Fitness — Golf Ready', 'Unexpected page title');
             await page.waitForSelector('#planCard .exercise');
 
-            // All rendered images must decode successfully.
-            let broken = await page.locator('img').evaluateAll(imgs => imgs.filter(i => !i.complete || i.naturalWidth === 0).map(i => ({alt:i.alt,src:i.src.slice(0,60)})));
+            // Every image that has actually been assigned a source must decode.
+            let broken = await brokenLoadedImages(page.locator('img'));
             assert(broken.length === 0, `Broken images on initial plan: ${JSON.stringify(broken)}`);
 
-            // Day-before mobility section should include six real exercise images.
+            // Day-before mobility section must include all six real exercise images.
             const mobilityRows = page.locator('#planCard .work-section').filter({ hasText: 'Back + hip mobility' }).locator('.exercise');
             assert(await mobilityRows.count() === 6, 'Expected 6 day-before mobility exercises');
             const mobilityImgs = mobilityRows.locator('img');
             assert(await mobilityImgs.count() === 6, `Expected all 6 mobility exercises to have images; found ${await mobilityImgs.count()}`);
+            broken = await brokenLoadedImages(mobilityImgs);
+            assert(broken.length === 0, `Broken mobility images: ${JSON.stringify(broken)}`);
 
-            // Exercise completion should persist in UI and progress should move.
+            // Exercise completion and progress.
             const firstExercise = page.locator('#planCard .exercise').first();
             await firstExercise.click();
             assert(await firstExercise.evaluate(el => el.classList.contains('done')), 'Exercise did not mark complete');
             assert((await page.locator('.progress-meta').innerText()).includes('1 /'), 'Progress did not update');
 
-            // Navigate library and verify both tabs are usable.
-            await page.locator('.nav-item[data-screen="library"]').click();
+            // Library navigation and mobility images.
+            await page.locator('.nav-item[data-screen="library"]').first().click();
             await page.waitForSelector('#libraryScreen.active');
             assert(await page.locator('#libraryList .lib-row').count() === 6, 'Mobility library should have 6 rows');
-            broken = await page.locator('#libraryList img').evaluateAll(imgs => imgs.filter(i => !i.complete || i.naturalWidth === 0).map(i => i.alt));
-            assert(broken.length === 0, `Broken library images: ${broken.join(', ')}`);
+            broken = await brokenLoadedImages(page.locator('#libraryList img'));
+            assert(broken.length === 0, `Broken library images: ${JSON.stringify(broken)}`);
 
-            // Open first exercise detail sheet and verify large image.
+            // Exercise detail sheet must show a decoded large image.
             await page.locator('#libraryList .lib-row').first().click();
             await page.waitForSelector('#detailSheet.open');
-            const detailVisible = await page.locator('#sheetImg').isVisible();
-            assert(detailVisible, 'Exercise detail image is not visible');
+            assert(await page.locator('#sheetImg').isVisible(), 'Exercise detail image is not visible');
             assert(await page.locator('#sheetImg').evaluate(i => i.complete && i.naturalWidth > 0), 'Exercise detail image failed to decode');
             await page.locator('#closeSheet').click();
 
-            // Activation tab should render safely; image-less exercises use glyph fallbacks, never broken img tags.
+            // Activation tab may use glyph fallbacks; it must never produce broken img elements.
             await page.locator('[data-lib="activation"]').click();
             assert(await page.locator('#libraryList .lib-row').count() === 6, 'Activation library should have 6 rows');
-            broken = await page.locator('#libraryList img').evaluateAll(imgs => imgs.filter(i => !i.complete || i.naturalWidth === 0).map(i => i.alt));
-            assert(broken.length === 0, `Broken activation images: ${broken.join(', ')}`);
+            broken = await brokenLoadedImages(page.locator('#libraryList img'));
+            assert(broken.length === 0, `Broken activation images: ${JSON.stringify(broken)}`);
 
-            // Exercise plans from 7 days out through golf day should all render without errors or broken images.
-            await page.locator('.nav-item[data-screen="plan"]').click();
+            // Every 0–7 day plan must render and every assigned image must decode.
+            await page.locator('.nav-item[data-screen="plan"]').first().click();
             for (const d of [7,6,5,4,3,2,1,0]) {
               await page.locator(`[data-day="${d}"]`).click();
               await page.waitForSelector('#planCard .exercise');
               const count = await page.locator('#planCard .exercise').count();
               assert(count > 0, `No exercises rendered for day ${d}`);
-              const bad = await page.locator('#planCard img').evaluateAll(imgs => imgs.filter(i => !i.complete || i.naturalWidth === 0).map(i => i.alt));
-              assert(bad.length === 0, `Broken images for day ${d}: ${bad.join(', ')}`);
+              const bad = await brokenLoadedImages(page.locator('#planCard img'));
+              assert(bad.length === 0, `Broken images for day ${d}: ${JSON.stringify(bad)}`);
             }
 
-            // Bottom nav + week + safety screens.
-            await page.locator('.nav-item[data-screen="week"]').click();
+            // Week and safety screens.
+            await page.locator('.nav-item[data-screen="week"]').first().click();
             assert(await page.locator('#weekScreen.active .week-row').count() === 7, 'Weekly plan should have 7 rows');
-            await page.locator('.nav-item[data-screen="safety"]').click();
+            await page.locator('.nav-item[data-screen="safety"]').first().click();
             assert(await page.locator('#safetyScreen.active .alert').count() >= 3, 'Safety content missing');
 
             assert(errors.length === 0, errors.join('\n'));
