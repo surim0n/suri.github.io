@@ -13,36 +13,26 @@
     <div class="brand"><div class="mark">›</div><div class="brand-text"><b>SURI</b><small>FITNESS</small></div></div>
     <button class="icon-btn" id="resetBtn" aria-label="Reset workout">↻</button>
   </header>
-
   <main class="main">
     <section id="planScreen" class="screen active">
       <section class="hero">
         <div class="kicker">Train smart · move well</div>
         <h1>Golf Ready.<br><span>Every Day.</span></h1>
         <p>Strength, mobility and back-friendly prep that changes based on how close you are to golf.</p>
-        <div class="day-card">
-          <div class="day-top"><div><div class="label">Days until golf</div><div class="big-day" id="bigDay">1 day</div></div><div class="badge primary" id="modeBadge">Day before</div></div>
-          <div class="days" id="days"></div>
-        </div>
+        <div class="day-card"><div class="day-top"><div><div class="label">Days until golf</div><div class="big-day" id="bigDay">1 day</div></div><div class="badge primary" id="modeBadge">Day before</div></div><div class="days" id="days"></div></div>
       </section>
       <div class="section-head section"><h2>Today's plan</h2><small id="planTime"></small></div>
       <section class="card" id="planCard"></section>
     </section>
-
     <section id="libraryScreen" class="screen">
       <div class="section-head"><div><div class="kicker">Exercise library</div><h2>Form at a glance</h2></div><small>tap for detail</small></div>
-      <section class="card tabs-card">
-        <div class="tabs"><button class="tab active" data-lib="mobility">Mobility</button><button class="tab" data-lib="activation">Activation</button></div>
-        <div id="libraryList" class="library-list"></div>
-      </section>
+      <section class="card tabs-card"><div class="tabs"><button class="tab active" data-lib="mobility">Mobility</button><button class="tab" data-lib="activation">Activation</button></div><div id="libraryList" class="library-list"></div></section>
     </section>
-
     <section id="weekScreen" class="screen">
       <div class="section-head"><div><div class="kicker">Baseline week</div><h2>Strength + mobility</h2></div><small>adjust around golf</small></div>
       <section class="card week" id="weekList"></section>
       <section class="card alert section"><div class="alert-icon">i</div><div><b>How to use this</b><p>When golf gets within 3 days, use the days-out selector on the Plan tab instead of forcing the normal weekly schedule.</p></div></section>
     </section>
-
     <section id="safetyScreen" class="screen">
       <div class="section-head"><div><div class="kicker">Back-friendly rules</div><h2>Move better, not harder</h2></div></div>
       <section class="card alert"><div class="alert-icon">✓</div><div><b>Your physio wins</b><p>Specific advice from the physio who examined you yesterday overrides this general training guide.</p></div></section>
@@ -51,25 +41,20 @@
     </section>
   </main>
 </div>
-
 <nav class="bottom-nav">
   <button class="nav-item active" data-screen="plan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11 12 4l9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Plan</button>
   <button class="nav-item" data-screen="library"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 7v10M18 7v10M3 9v6M21 9v6M6 12h12"/></svg>Library</button>
   <button class="nav-item" data-screen="week"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>Week</button>
   <button class="nav-item" data-screen="safety"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg>Safety</button>
 </nav>
-
 <div class="sheet-backdrop" id="backdrop"></div>
-<aside class="sheet" id="detailSheet" aria-hidden="true">
-  <div class="handle"></div><div class="sheet-body"><button class="close" id="closeSheet">×</button><img class="sheet-img" id="sheetImg" alt="Exercise demonstration"><h3 id="sheetTitle"></h3><div class="dose-lg" id="sheetDose"></div><div class="cue-lg" id="sheetCue"></div></div>
-</aside>
-
-<script src="images-1.js"></script>
-<script src="images-2.js"></script>
-<script src="images-3.js"></script>
-<script src="images-4.js"></script>
-<script src="images-5.js"></script>
-<script src="images-6.js"></script>
+<aside class="sheet" id="detailSheet" aria-hidden="true"><div class="handle"></div><div class="sheet-body"><button class="close" id="closeSheet">×</button><img class="sheet-img" id="sheetImg" alt="Exercise demonstration"><h3 id="sheetTitle"></h3><div class="dose-lg" id="sheetDose"></div><div class="cue-lg" id="sheetCue"></div></div></aside>
+<script src="img-m1.js"></script>
+<script src="img-m2.js"></script>
+<script src="img-m3.js"></script>
+<script src="img-a1.js"></script>
+<script src="img-a2.js"></script>
+<script src="img-a3.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
