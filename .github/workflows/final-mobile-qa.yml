@@ -1,0 +1,127 @@
+name: Final mobile QA
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Playwright
+        run: |
+          npm init -y
+          npm install --save-dev playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Start local server
+        run: |
+          python3 -m http.server 4173 >/tmp/suri-http.log 2>&1 &
+          echo $! >/tmp/suri-http.pid
+          sleep 2
+
+      - name: iPhone render and interaction QA
+        run: |
+          node <<'NODE'
+          const { chromium } = require('playwright');
+          const assert = (ok, msg) => { if (!ok) throw new Error(msg); };
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const page = await browser.newPage({
+              viewport: { width: 393, height: 852 },
+              deviceScaleFactor: 2,
+              isMobile: true,
+              hasTouch: true,
+            });
+
+            const errors = [];
+            page.on('pageerror', e => errors.push(`pageerror: ${e.message}`));
+            page.on('console', m => { if (m.type() === 'error') errors.push(`console: ${m.text()}`); });
+
+            const response = await page.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle' });
+            assert(response && response.ok(), `Page failed to load: ${response && response.status()}`);
+            assert((await page.title()) === 'SURI Fitness — Golf Ready', 'Unexpected page title');
+            await page.waitForSelector('#planCard .exercise');
+
+            // All rendered images must decode successfully.
+            let broken = await page.locator('img').evaluateAll(imgs => imgs.filter(i => !i.complete || i.naturalWidth === 0).map(i => ({alt:i.alt,src:i.src.slice(0,60)})));
+            assert(broken.length === 0, `Broken images on initial plan: ${JSON.stringify(broken)}`);
+
+            // Day-before mobility section should include six real exercise images.
+            const mobilityRows = page.locator('#planCard .work-section').filter({ hasText: 'Back + hip mobility' }).locator('.exercise');
+            assert(await mobilityRows.count() === 6, 'Expected 6 day-before mobility exercises');
+            const mobilityImgs = mobilityRows.locator('img');
+            assert(await mobilityImgs.count() === 6, `Expected all 6 mobility exercises to have images; found ${await mobilityImgs.count()}`);
+
+            // Exercise completion should persist in UI and progress should move.
+            const firstExercise = page.locator('#planCard .exercise').first();
+            await firstExercise.click();
+            assert(await firstExercise.evaluate(el => el.classList.contains('done')), 'Exercise did not mark complete');
+            assert((await page.locator('.progress-meta').innerText()).includes('1 /'), 'Progress did not update');
+
+            // Navigate library and verify both tabs are usable.
+            await page.locator('.nav-item[data-screen="library"]').click();
+            await page.waitForSelector('#libraryScreen.active');
+            assert(await page.locator('#libraryList .lib-row').count() === 6, 'Mobility library should have 6 rows');
+            broken = await page.locator('#libraryList img').evaluateAll(imgs => imgs.filter(i => !i.complete || i.naturalWidth === 0).map(i => i.alt));
+            assert(broken.length === 0, `Broken library images: ${broken.join(', ')}`);
+
+            // Open first exercise detail sheet and verify large image.
+            await page.locator('#libraryList .lib-row').first().click();
+            await page.waitForSelector('#detailSheet.open');
+            const detailVisible = await page.locator('#sheetImg').isVisible();
+            assert(detailVisible, 'Exercise detail image is not visible');
+            assert(await page.locator('#sheetImg').evaluate(i => i.complete && i.naturalWidth > 0), 'Exercise detail image failed to decode');
+            await page.locator('#closeSheet').click();
+
+            // Activation tab should render safely; image-less exercises use glyph fallbacks, never broken img tags.
+            await page.locator('[data-lib="activation"]').click();
+            assert(await page.locator('#libraryList .lib-row').count() === 6, 'Activation library should have 6 rows');
+            broken = await page.locator('#libraryList img').evaluateAll(imgs => imgs.filter(i => !i.complete || i.naturalWidth === 0).map(i => i.alt));
+            assert(broken.length === 0, `Broken activation images: ${broken.join(', ')}`);
+
+            // Exercise plans from 7 days out through golf day should all render without errors or broken images.
+            await page.locator('.nav-item[data-screen="plan"]').click();
+            for (const d of [7,6,5,4,3,2,1,0]) {
+              await page.locator(`[data-day="${d}"]`).click();
+              await page.waitForSelector('#planCard .exercise');
+              const count = await page.locator('#planCard .exercise').count();
+              assert(count > 0, `No exercises rendered for day ${d}`);
+              const bad = await page.locator('#planCard img').evaluateAll(imgs => imgs.filter(i => !i.complete || i.naturalWidth === 0).map(i => i.alt));
+              assert(bad.length === 0, `Broken images for day ${d}: ${bad.join(', ')}`);
+            }
+
+            // Bottom nav + week + safety screens.
+            await page.locator('.nav-item[data-screen="week"]').click();
+            assert(await page.locator('#weekScreen.active .week-row').count() === 7, 'Weekly plan should have 7 rows');
+            await page.locator('.nav-item[data-screen="safety"]').click();
+            assert(await page.locator('#safetyScreen.active .alert').count() >= 3, 'Safety content missing');
+
+            assert(errors.length === 0, errors.join('\n'));
+            await page.screenshot({ path: 'final-mobile.png', fullPage: true });
+            await browser.close();
+            console.log('FINAL MOBILE QA PASSED');
+          })().catch(err => { console.error(err); process.exit(1); });
+          NODE
+
+      - name: Upload final mobile screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: final-mobile-qa
+          path: final-mobile.png
+          if-no-files-found: ignore
