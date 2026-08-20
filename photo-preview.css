@@ -1,0 +1,40 @@
+.exercise {
+  cursor: pointer;
+}
+
+.exercise:focus-visible,
+.photo-button:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+
+.photo-button {
+  position: relative;
+  width: 66px;
+  height: 66px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  cursor: zoom-in;
+  overflow: hidden;
+}
+
+.photo-button .thumb {
+  display: block;
+}
+
+.photo-button > span {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 20px;
+  height: 20px;
+  border: 1px solid rgb(255 255 255 / 18%);
+  border-radius: 6px;
+  background: rgb(5 9 7 / 78%);
+  color: white;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+}

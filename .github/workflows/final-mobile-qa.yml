@@ -73,6 +73,26 @@ jobs:
             broken = await brokenLoadedImages(mobilityImgs);
             assert(broken.length === 0, `Broken mobility images: ${JSON.stringify(broken)}`);
 
+            // Every golf-activation exercise must use a real decoded photo in the plan.
+            const activationRows = page.locator('#planCard .work-section').filter({ hasText: 'Golf activation' }).locator('.exercise');
+            assert(await activationRows.count() === 6, 'Expected 6 day-before activation exercises');
+            assert(await activationRows.locator('.glyph').count() === 0, 'Activation plan contains glyph fallbacks');
+            const activationPlanImgs = activationRows.locator('img');
+            assert(await activationPlanImgs.count() === 6, `Expected all 6 activation exercises to have images; found ${await activationPlanImgs.count()}`);
+            broken = await brokenLoadedImages(activationPlanImgs);
+            assert(broken.length === 0, `Broken activation plan images: ${JSON.stringify(broken)}`);
+
+            // Tapping a plan photo opens its large preview without completing the exercise.
+            const previewRow = activationRows.first();
+            const progressBeforePreview = await page.locator('.progress-meta').innerText();
+            await previewRow.locator('.photo-button').click();
+            await page.waitForSelector('#detailSheet.open');
+            assert((await page.locator('#sheetTitle').innerText()).trim() === 'Cable row', 'Photo preview opened the wrong exercise');
+            assert(await page.locator('#sheetImg').isVisible(), 'Plan photo preview is not visible');
+            assert(await page.locator('#sheetImg').evaluate(i => i.complete && i.naturalWidth > 0), 'Plan photo preview failed to decode');
+            assert(await page.locator('.progress-meta').innerText() === progressBeforePreview, 'Tapping a photo unexpectedly completed the exercise');
+            await page.locator('#closeSheet').click();
+
             // Exercise completion and progress.
             const firstExercise = page.locator('#planCard .exercise').first();
             await firstExercise.click();
@@ -93,11 +113,28 @@ jobs:
             assert(await page.locator('#sheetImg').evaluate(i => i.complete && i.naturalWidth > 0), 'Exercise detail image failed to decode');
             await page.locator('#closeSheet').click();
 
-            // Activation tab may use glyph fallbacks; it must never produce broken img elements.
+            // Activation library must show all six real photos, with no glyph fallback.
             await page.locator('[data-lib="activation"]').click();
             assert(await page.locator('#libraryList .lib-row').count() === 6, 'Activation library should have 6 rows');
-            broken = await brokenLoadedImages(page.locator('#libraryList img'));
+            assert(await page.locator('#libraryList .glyph').count() === 0, 'Activation library contains glyph fallbacks');
+            const activationLibraryImgs = page.locator('#libraryList img');
+            assert(await activationLibraryImgs.count() === 6, `Expected 6 activation library images; found ${await activationLibraryImgs.count()}`);
+            broken = await brokenLoadedImages(activationLibraryImgs);
             assert(broken.length === 0, `Broken activation images: ${JSON.stringify(broken)}`);
+
+            // Each activation detail sheet must show the matching decoded photo.
+            for (let i = 0; i < 6; i++) {
+              const row = page.locator('#libraryList .lib-row').nth(i);
+              const expectedName = (await row.locator('b').innerText()).trim();
+              const expectedSrc = await row.locator('img').getAttribute('src');
+              await row.click();
+              await page.waitForSelector('#detailSheet.open');
+              assert((await page.locator('#sheetTitle').innerText()).trim() === expectedName, `Wrong detail title for ${expectedName}`);
+              assert(await page.locator('#sheetImg').isVisible(), `Detail image is not visible for ${expectedName}`);
+              assert(await page.locator('#sheetImg').getAttribute('src') === expectedSrc, `Wrong detail image for ${expectedName}`);
+              assert(await page.locator('#sheetImg').evaluate(i => i.complete && i.naturalWidth > 0), `Detail image failed to decode for ${expectedName}`);
+              await page.locator('#closeSheet').click();
+            }
 
             // Every 0–7 day plan must render and every assigned image must decode.
             await page.locator('.nav-item[data-screen="plan"]').first().click();
