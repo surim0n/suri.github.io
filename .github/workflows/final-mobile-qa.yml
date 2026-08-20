@@ -82,20 +82,27 @@ jobs:
             broken = await brokenLoadedImages(activationPlanImgs);
             assert(broken.length === 0, `Broken activation plan images: ${JSON.stringify(broken)}`);
 
-            // Tapping a plan photo opens its large preview without completing the exercise.
+            // Tapping anywhere on a plan card except its checkbox opens the full exercise detail.
             const previewRow = activationRows.first();
             const progressBeforePreview = await page.locator('.progress-meta').innerText();
-            await previewRow.locator('.photo-button').click();
+            await previewRow.locator('.exercise-name').click();
             await page.waitForSelector('#detailSheet.open');
-            assert((await page.locator('#sheetTitle').innerText()).trim() === 'Cable row', 'Photo preview opened the wrong exercise');
+            assert((await page.locator('#sheetTitle').innerText()).trim() === 'Cable row', 'Exercise card opened the wrong detail');
             assert(await page.locator('#sheetImg').isVisible(), 'Plan photo preview is not visible');
             assert(await page.locator('#sheetImg').evaluate(i => i.complete && i.naturalWidth > 0), 'Plan photo preview failed to decode');
-            assert(await page.locator('.progress-meta').innerText() === progressBeforePreview, 'Tapping a photo unexpectedly completed the exercise');
+            assert(await page.locator('#sheetImg').evaluate(i => i.clientWidth > 0 && Math.abs((i.clientWidth / i.clientHeight) - (i.naturalWidth / i.naturalHeight)) < 0.02), 'Large preview is cropped or distorted');
+            assert(await page.locator('#sheetImg').evaluate(i => getComputedStyle(i).objectFit === 'contain'), 'Large preview does not preserve the full image');
+            assert(await page.locator('.progress-meta').innerText() === progressBeforePreview, 'Opening exercise detail unexpectedly completed the exercise');
             await page.locator('#closeSheet').click();
 
-            // Exercise completion and progress.
+            // Only the checkbox hit area may change exercise completion and progress.
             const firstExercise = page.locator('#planCard .exercise').first();
-            await firstExercise.click();
+            const firstProgress = await page.locator('.progress-meta').innerText();
+            await firstExercise.locator('.exercise-name').click();
+            await page.waitForSelector('#detailSheet.open');
+            assert(await page.locator('.progress-meta').innerText() === firstProgress, 'Tapping exercise content unexpectedly marked it complete');
+            await page.locator('#closeSheet').click();
+            await firstExercise.locator('.check-button').click();
             assert(await firstExercise.evaluate(el => el.classList.contains('done')), 'Exercise did not mark complete');
             assert((await page.locator('.progress-meta').innerText()).includes('1 /'), 'Progress did not update');
 
