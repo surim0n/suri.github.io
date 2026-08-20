@@ -38,10 +38,15 @@ jobs:
           node <<'NODE'
           const { chromium } = require('playwright');
           const assert = (ok, msg) => { if (!ok) throw new Error(msg); };
-          const brokenLoadedImages = async locator => locator.evaluateAll(imgs =>
-            imgs.filter(i => i.getAttribute('src') && (!i.complete || i.naturalWidth === 0))
-                .map(i => ({ alt: i.alt, src: i.src.slice(0, 80) }))
-          );
+          const brokenLoadedImages = async locator => {
+            await locator.evaluateAll(imgs => Promise.all(
+              imgs.filter(i => i.getAttribute('src')).map(i => i.decode().catch(() => {}))
+            ));
+            return locator.evaluateAll(imgs =>
+              imgs.filter(i => i.getAttribute('src') && (!i.complete || i.naturalWidth === 0))
+                  .map(i => ({ alt: i.alt, src: i.src.slice(0, 80) }))
+            );
+          };
 
           (async () => {
             const browser = await chromium.launch({ headless: true });
