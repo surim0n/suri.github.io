@@ -97,6 +97,8 @@ jobs:
             assert(await page.locator('#sheetImg').evaluate(i => i.complete && i.naturalWidth > 0), 'Plan photo preview failed to decode');
             assert(await page.locator('#sheetImg').evaluate(i => i.clientWidth > 0 && Math.abs((i.clientWidth / i.clientHeight) - (i.naturalWidth / i.naturalHeight)) < 0.02), 'Large preview is cropped or distorted');
             assert(await page.locator('#sheetImg').evaluate(i => getComputedStyle(i).objectFit === 'contain'), 'Large preview does not preserve the full image');
+            assert(await page.locator('#detailSheet').evaluate(s => { const r=s.getBoundingClientRect(); return r.top >= 0 && r.left >= 0 && r.bottom <= innerHeight && r.right <= innerWidth; }), 'Exercise detail panel extends outside the viewport');
+            assert(await page.locator('#detailSheet .sheet-body').evaluate(s => s.scrollHeight <= s.clientHeight + 1), 'Exercise detail content is cut off or requires scrolling at the phone viewport');
             assert(await page.locator('.progress-meta').innerText() === progressBeforePreview, 'Opening exercise detail unexpectedly completed the exercise');
             await page.locator('#closeSheet').click();
 
@@ -145,6 +147,8 @@ jobs:
               assert(await page.locator('#sheetImg').isVisible(), `Detail image is not visible for ${expectedName}`);
               assert(await page.locator('#sheetImg').getAttribute('src') === expectedSrc, `Wrong detail image for ${expectedName}`);
               assert(await page.locator('#sheetImg').evaluate(i => i.complete && i.naturalWidth > 0), `Detail image failed to decode for ${expectedName}`);
+              assert(await page.locator('#detailSheet').evaluate(s => { const r=s.getBoundingClientRect(); return r.top >= 0 && r.left >= 0 && r.bottom <= innerHeight && r.right <= innerWidth; }), `Detail panel extends outside the viewport for ${expectedName}`);
+              assert(await page.locator('#detailSheet .sheet-body').evaluate(s => s.scrollHeight <= s.clientHeight + 1), `Detail content is cut off for ${expectedName}`);
               await page.locator('#closeSheet').click();
             }
 
@@ -164,6 +168,18 @@ jobs:
             assert(await page.locator('#weekScreen.active .week-row').count() === 7, 'Weekly plan should have 7 rows');
             await page.locator('.nav-item[data-screen="safety"]').first().click();
             assert(await page.locator('#safetyScreen.active .alert').count() >= 3, 'Safety content missing');
+
+            // The exercise panel must also fit a shorter phone without clipping or scrolling.
+            await page.setViewportSize({ width: 320, height: 568 });
+            await page.locator('.nav-item[data-screen="library"]').first().click();
+            await page.locator('[data-lib="activation"]').click();
+            await page.locator('#libraryList .lib-row').first().click();
+            await page.waitForSelector('#detailSheet.open');
+            assert(await page.locator('#detailSheet').evaluate(s => { const r=s.getBoundingClientRect(); return r.top >= 0 && r.left >= 0 && r.bottom <= innerHeight && r.right <= innerWidth; }), 'Exercise detail panel is clipped on a shorter phone');
+            assert(await page.locator('#detailSheet .sheet-body').evaluate(s => s.scrollHeight <= s.clientHeight + 1), 'Exercise detail content requires scrolling on a shorter phone');
+            assert(await page.locator('#sheetCue').evaluate(s => { const r=s.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; }), 'Exercise instructions are cut off on a shorter phone');
+            await page.locator('#closeSheet').click();
+            await page.setViewportSize({ width: 393, height: 852 });
 
             assert(errors.length === 0, errors.join('\n'));
             await page.screenshot({ path: 'final-mobile.png', fullPage: true });

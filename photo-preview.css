@@ -4,6 +4,10 @@
   padding: 0 7px 0 0;
 }
 
+body.sheet-open {
+  overflow: hidden;
+}
+
 .exercise.no-img {
   grid-template-columns: 1fr 40px;
 }
@@ -80,7 +84,53 @@
 .sheet-img {
   display: block;
   height: auto;
-  max-height: none;
+  max-height: min(52dvh, 430px);
   object-fit: contain;
   image-rendering: auto;
+}
+
+.sheet {
+  top: 50%;
+  right: auto;
+  bottom: auto;
+  left: 50%;
+  width: calc(100% - 20px);
+  max-width: 740px;
+  max-height: calc(100dvh - 20px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  margin: 0;
+  padding-bottom: 0;
+  border: 1px solid hsl(var(--border));
+  border-radius: 22px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, calc(-50% + 12px)) scale(.98);
+  transition: transform .18s ease, opacity .18s ease;
+}
+
+.sheet.open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.sheet .handle {
+  flex: 0 0 auto;
+}
+
+.sheet-body {
+  min-height: 0;
+  padding: 0 14px 18px;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.sheet .close {
+  position: sticky;
+  top: 0;
+  float: none;
+  margin: 0 0 8px auto;
+  display: block;
 }
