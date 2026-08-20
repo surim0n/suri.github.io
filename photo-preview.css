@@ -20,13 +20,13 @@ body.sheet-open {
 
 .exercise-open {
   min-width: 0;
-  min-height: 80px;
+  min-height: 92px;
   padding: 7px;
   border: 0;
   border-radius: 13px;
   background: transparent;
   display: grid;
-  grid-template-columns: 66px 1fr;
+  grid-template-columns: 76px 1fr;
   align-items: center;
   gap: 10px;
   text-align: left;
@@ -44,12 +44,14 @@ body.sheet-open {
 
 .photo-preview {
   position: relative;
-  width: 66px;
-  height: 66px;
+  width: 76px;
+  height: 76px;
 }
 
 .photo-preview .thumb {
   display: block;
+  width: 76px;
+  height: 76px;
 }
 
 .photo-preview > span {
@@ -70,7 +72,7 @@ body.sheet-open {
 .check-button {
   width: 40px;
   height: 100%;
-  min-height: 80px;
+  min-height: 92px;
   margin: 0;
   padding: 0;
   border: 0;
@@ -94,7 +96,7 @@ body.sheet-open {
   right: auto;
   bottom: auto;
   left: 50%;
-  width: calc(100% - 20px);
+  width: calc(100% - 12px);
   max-width: 740px;
   max-height: calc(100dvh - 20px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   margin: 0;
@@ -122,7 +124,7 @@ body.sheet-open {
 
 .sheet-body {
   min-height: 0;
-  padding: 0 14px 18px;
+  padding: 0 10px 14px;
   overflow: auto;
   overscroll-behavior: contain;
 }
@@ -133,4 +135,13 @@ body.sheet-open {
   float: none;
   margin: 0 0 8px auto;
   display: block;
+}
+
+.lib-row {
+  grid-template-columns: 64px 1fr auto;
+}
+
+.lib-row img {
+  width: 64px;
+  height: 64px;
 }
